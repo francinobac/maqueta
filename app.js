@@ -2,7 +2,7 @@
 
 // Datos públicos del proyecto: acá no van contraseñas ni la clave de acceso.
 const CONFIG = {
-  BROKER_URL: 'wss://p1f312f1.ala.us-east-1.emqxsl.com',
+  BROKER_URL: 'wss://p1f312f1.ala.us-east-1.emqxsl.com:8084/mqtt',
   PREFIJO: 'escuela/maqueta1',          // igual que PREFIJO_TEMAS en config.h
   DOMINIO_OFICIAL: 'francinobac.github.io',
 };
