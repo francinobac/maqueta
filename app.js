@@ -2,9 +2,9 @@
 
 // Datos públicos del proyecto: acá no van contraseñas ni la clave de acceso.
 const CONFIG = {
-  BROKER_URL: 'wss://TU-DEPLOYMENT.emqxsl.com:8084/mqtt',
+  BROKER_URL: 'wss://p1f312f1.ala.us-east-1.emqxsl.com',
   PREFIJO: 'escuela/maqueta1',          // igual que PREFIJO_TEMAS en config.h
-  DOMINIO_OFICIAL: 'TU-USUARIO.github.io',
+  DOMINIO_OFICIAL: 'francinobac.github.io',
 };
 
 const TEMAS = {
