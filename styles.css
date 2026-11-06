@@ -1,0 +1,33 @@
+[hidden]{display:none!important}
+body{margin:0;background:#eef2f6;color:#1d2733;font-family:system-ui,sans-serif}
+main{max-width:480px;margin:auto;padding:16px}
+h1{font-size:1.4em;margin:8px 0 16px}
+h2{font-size:1.1em;margin:0 0 8px}
+section{background:#fff;border-radius:12px;padding:16px;margin-bottom:16px;box-shadow:0 1px 3px #0002}
+label{display:block;margin-bottom:12px;font-weight:600}
+input{display:block;box-sizing:border-box;width:100%;margin-top:4px;padding:12px;font-size:1em;border:1px solid #9aa7b5;border-radius:8px}
+button{padding:12px;font-size:1em;border:0;border-radius:8px;background:#1f5fa8;color:#fff;cursor:pointer}
+button.claro{background:#dfe6ee;color:#1d2733}
+button:disabled{opacity:.5;cursor:not-allowed}
+form>button{width:100%}
+.fila{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:12px 0;border-top:1px solid #e3e8ee}
+.fila b{align-self:center}
+.fila span{align-self:center;text-align:right}
+.error{color:#b3261e;font-weight:600;min-height:1.2em;margin:12px 0 0}
+.pie{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:8px}
+table{width:100%;border-collapse:collapse;font-size:.85em}
+th,td{text-align:left;padding:6px 4px;border-top:1px solid #e3e8ee}
+th:first-child,td:first-child{white-space:nowrap}
+tr.sospechoso td{color:#b3261e;font-weight:600}
+
+.chip{display:inline-block;margin:0 0 16px;padding:6px 12px;border-radius:999px;font-size:.9em;font-weight:600;background:#dfe6ee}
+.chip.ok{background:#d7f0dd;color:#14532d}
+.chip.mal{background:#fbdcd9;color:#8c1d18}
+.nota{margin:0 0 16px;padding:12px;border-radius:8px;background:#fff6d6;font-size:.9em;line-height:1.4}
+.nota b{display:block;margin-bottom:4px}
+.nota code{font-weight:700;overflow-wrap:anywhere}
+.nota.peligro{background:#fbdcd9;color:#8c1d18}
+.alerta{margin:0 0 16px;padding:12px;border-radius:8px;background:#fbdcd9;color:#8c1d18;font-weight:600}
+dialog{width:min(90vw,420px);box-sizing:border-box;border:0;border-radius:12px;padding:16px}
+dialog::backdrop{background:#0006}
+dialog .pie button{flex:1}

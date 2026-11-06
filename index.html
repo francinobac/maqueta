@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Habitación IoT</title>
+<link rel="stylesheet" href="styles.css">
+<script defer src="https://cdn.jsdelivr.net/npm/mqtt@5.16.1/dist/mqtt.min.js" integrity="sha384-ilRYg/zm2XqUafLvBoGVk40UfNRnvUkYMy+e/JPo4YgsFR6X9Q3jYEkqFQXquX4r" crossorigin="anonymous"></script>
+<script defer src="app.js"></script>
+</head>
+<body>
+<main>
+<h1>Habitación IoT</h1>
+<p id="conexion" class="chip" role="status" hidden></p>
+
+<section id="login">
+<h2>Iniciar sesión</h2>
+<div id="dominio" class="nota">
+<b>Antes de escribir tus datos, mirá la barra de direcciones del navegador.</b>
+Tiene que decir exactamente <code id="dominioOficial"></code>. No te guíes por este cartel: un sitio falso también puede copiarlo.
+</div>
+<form id="formLogin">
+<label>Usuario del broker<input id="usuario" autocomplete="username" autocapitalize="none" spellcheck="false" required></label>
+<label>Contraseña del broker<input id="clave" type="password" autocomplete="current-password" required></label>
+<button>Conectar</button>
+</form>
+<p id="error" class="error" role="alert"></p>
+</section>
+
+<section id="acceso" hidden>
+<h2>Clave de acceso</h2>
+<p>La verifica el ESP32. Si la escribiste en otro sitio, hay que cambiarla.</p>
+<form id="formAcceso">
+<input type="text" autocomplete="username" value="clave-de-la-maqueta" hidden>
+<label>Clave de acceso<input id="claveAcceso" type="password" autocomplete="current-password" maxlength="64" required></label>
+<button>Entrar</button>
+</form>
+<p id="errorAcceso" class="error" role="alert"></p>
+<div class="pie"><span></span><button type="button" class="claro" data-salir>Desconectar</button></div>
+</section>
+
+<div id="panel" hidden>
+<p id="alerta" class="alerta" role="alert" hidden></p>
+<section>
+<h2>Control</h2>
+<div class="fila"><b>Puerta</b><span id="puerta">—</span>
+<button data-elemento="puerta" data-accion="abrir">Abrir</button><button class="claro" data-elemento="puerta" data-accion="cerrar">Cerrar</button></div>
+<div class="fila"><b>Ventana</b><span id="ventana">—</span>
+<button data-elemento="ventana" data-accion="abrir">Abrir</button><button class="claro" data-elemento="ventana" data-accion="cerrar">Cerrar</button></div>
+<div class="fila"><b>Luz</b><span id="luz">—</span>
+<button data-elemento="luz" data-accion="prender">Prender</button><button class="claro" data-elemento="luz" data-accion="apagar">Apagar</button></div>
+<p id="aviso" class="error" role="alert"></p>
+<div class="pie"><small id="restante"></small><button type="button" class="claro" data-salir>Cerrar sesión</button></div>
+</section>
+<section>
+<h2>Últimos eventos</h2>
+<table><thead><tr><th>Hora</th><th>Resultado</th></tr></thead><tbody id="eventos"></tbody></table>
+</section>
+</div>
+</main>
+
+<dialog id="confirmar">
+<form id="formConfirmar">
+<h2 id="confirmarTitulo"></h2>
+<p>Para abrir, confirmá con la clave de acceso.</p>
+<input type="text" autocomplete="username" value="clave-de-la-maqueta" hidden>
+<label>Clave de acceso<input id="claveConfirmar" type="password" autocomplete="current-password" maxlength="64" required></label>
+<p id="errorConfirmar" class="error" role="alert"></p>
+<div class="pie"><button type="button" class="claro" id="cancelarConfirmar">Cancelar</button><button>Confirmar</button></div>
+</form>
+</dialog>
+</body>
+</html>
