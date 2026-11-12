@@ -2,9 +2,9 @@
 
 // Datos públicos del proyecto: acá no van contraseñas ni la clave de acceso.
 const CONFIG = {
-  BROKER_URL: 'wss://p1f312f1.ala.us-east-1.emqxsl.com:8084/mqtt',
+  BROKER_URL: 'wss://p1f312f1.ala.us-east-1.emqxsl.com:8084/mqtt',   // con puerto y ruta
   PREFIJO: 'escuela/maqueta1',          // igual que PREFIJO_TEMAS en config.h
-  DOMINIO_OFICIAL: 'francinobac.github.io',
+  DOMINIO_OFICIAL: 'TU-USUARIO.github.io',
 };
 
 const TEMAS = {
@@ -14,8 +14,14 @@ const TEMAS = {
   estado: CONFIG.PREFIJO + '/estado',
   online: CONFIG.PREFIJO + '/online',
 };
-const ESPERA_RESPUESTA_MS = 8000;
+const ESPERA_RESPUESTA_MS = 15000;
 const NOMBRES = {puerta: 'la puerta', ventana: 'la ventana'};
+const ALERTAS = {
+  ventana: 'Aire encendido con la ventana abierta',
+  calor: 'Temperatura demasiado alta',
+  sensor: 'Falla del sensor de temperatura',
+};
+const CAMPOS = ['puerta', 'ventana', 'luz', 'temp', 'hum', 'aireEstado', 'aireModo', 'senal', 'canal', 'broker', 'mensajes', 'latencia'];
 
 const $ = id => document.getElementById(id);
 
@@ -23,13 +29,14 @@ let cliente = null;       // conexión MQTT
 let espOnline = null;     // null: todavía no se sabe
 let sesion = null;        // {token, ses, vence}. Solo en memoria: se pierde al recargar.
 let pendiente = null;     // comando de apertura que espera la clave
+let inicioMedicion = null;  // momento del último comando aceptado, para medir la latencia
 const pedidos = new Map();  // pedidos sin responder, por id
 
 function ver(id) {
   ['login', 'acceso', 'panel'].forEach(s => $(s).hidden = s !== id);
 }
 
-/* ---------- Aviso de dominio (ayuda a reconocer copias; no es una protección) ---------- */
+// Aviso de dominio (ayuda a reconocer copias; no es una protección)
 
 function revisarDominio() {
   $('dominioOficial').textContent = 'https://' + CONFIG.DOMINIO_OFICIAL;
@@ -40,7 +47,7 @@ function revisarDominio() {
   }
 }
 
-/* ---------- Conexión al broker ---------- */
+// Conexión al broker
 
 function conectar(ev) {
   ev.preventDefault();
@@ -90,9 +97,13 @@ function desconectar(mensaje) {
   if (c) c.end(false);
   cerrarConfirmacion();
   for (const responder of pedidos.values()) responder({ok: false, mensaje: 'Desconectado.'});
+  inicioMedicion = null;
   $('eventos').replaceChildren();
-  ['puerta', 'ventana', 'luz'].forEach(id => $(id).textContent = '—');
+  CAMPOS.forEach(id => { $(id).textContent = '—'; $(id).className = ''; });
+  $('lectura').textContent = '';
+  $('consigna').value = '';
   $('alerta').hidden = true;
+  $('alertasMaqueta').hidden = true;
   $('conexion').hidden = true;
   $('claveAcceso').value = '';
   $('errorAcceso').textContent = '';
@@ -114,10 +125,11 @@ function mostrarConexion() {
   else if (espOnline === null) { chip.textContent = 'ESP32: esperando datos…'; chip.className = 'chip'; }
   else if (espOnline) { chip.textContent = 'ESP32: conectado'; chip.className = 'chip ok'; }
   else { chip.textContent = 'ESP32: desconectado (el estado puede ser viejo)'; chip.className = 'chip mal'; }
-  document.querySelectorAll('[data-elemento]').forEach(b => b.disabled = espOnline !== true);
+  document.querySelectorAll('[data-elemento], #formConsigna button').forEach(b => b.disabled = espOnline !== true);
+  $('broker').textContent = espOnline === null ? '—' : espOnline ? 'Conectado' : 'Desconectado';
 }
 
-/* ---------- Mensajes ---------- */
+// Mensajes
 
 function alRecibir(tema, datos) {
   const texto = datos.toString();
@@ -157,7 +169,7 @@ function idAzar() {
   return Math.random().toString(36).slice(2, 10);
 }
 
-/* ---------- Clave y sesión ---------- */
+// Clave y sesión
 
 async function enviarClave(ev) {
   ev.preventDefault();
@@ -191,20 +203,67 @@ function actualizarReloj() {
   $('restante').textContent = 'La sesión vence en ' + Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
 }
 
-/* ---------- Estado y eventos ---------- */
+// Estado y eventos
+
+function hora(segundos) {
+  return new Date(segundos * 1000).toLocaleString('es-AR', {
+    day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
+  });
+}
+
+function calidadSenal(rssi) {
+  if (rssi >= -60) return ['excelente', 'buena'];
+  if (rssi >= -67) return ['buena', 'buena'];
+  if (rssi >= -75) return ['regular', 'regular'];
+  return ['mala', 'mala'];
+}
+
+function mostrarMedicion(d) {
+  if (d.sensor) {
+    $('temp').textContent = d.temp.toFixed(1) + ' °C';
+    $('hum').textContent = Math.round(d.hum) + ' %';
+    $('lectura').textContent = 'Última lectura: ' + hora(d.lectura);
+  } else {
+    $('temp').textContent = 'Sin dato';
+    $('hum').textContent = 'Sin dato';
+    $('lectura').textContent = 'El sensor no responde.';
+  }
+  const aire = d.aire || {};
+  $('aireEstado').textContent = aire.on ? 'Encendido' : 'Apagado';
+  $('aireModo').textContent = aire.auto ? 'Automático' : 'Manual';
+  if (document.activeElement !== $('consigna') && aire.consigna != null) $('consigna').value = aire.consigna;
+
+  const alertas = (Array.isArray(d.alertas) ? d.alertas : []).map(a => ALERTAS[a]).filter(Boolean);
+  $('alertasMaqueta').hidden = alertas.length === 0;
+  $('alertasMaqueta').textContent = alertas.map(a => '⚠ ' + a).join('\n');
+}
+
+function mostrarRed(d) {
+  const red = d.red || {};
+  if (typeof red.rssi !== 'number') return;
+  const [texto, clase] = calidadSenal(red.rssi);
+  $('senal').textContent = red.rssi + ' dBm (' + texto + ')';
+  $('senal').className = clase;
+  $('canal').textContent = red.canal + ' (2,4 GHz)';
+  $('mensajes').textContent = red.enviados + ' enviados · ' + red.recibidos + ' recibidos';
+  if (inicioMedicion !== null) {
+    $('latencia').textContent = Math.round(performance.now() - inicioMedicion) + ' ms';
+    inicioMedicion = null;
+  }
+}
 
 function mostrarEstado(d) {
   $('puerta').textContent = d.puerta ? 'Abierta' : 'Cerrada';
   $('ventana').textContent = d.ventana ? 'Abierta' : 'Cerrada';
   $('luz').textContent = d.luz ? 'Prendida' : 'Apagada';
+  mostrarMedicion(d);
+  mostrarRed(d);
 
   const eventos = Array.isArray(d.eventos) ? d.eventos : [];
   $('eventos').replaceChildren(...eventos.map(e => {
     const fila = document.createElement('tr');
     if (e.a) fila.className = 'sospechoso';
-    fila.insertCell().textContent = new Date(e.t * 1000).toLocaleString('es-AR', {
-      day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
-    });
+    fila.insertCell().textContent = hora(e.t);
     fila.insertCell().textContent = e.r;
     return fila;
   }));
@@ -218,17 +277,26 @@ function mostrarEstado(d) {
   }
 }
 
-/* ---------- Comandos ---------- */
+// Comandos
 
-async function enviarComando(elemento, accion, clave) {
-  const datos = {token: sesion.token, elemento, accion};
-  if (clave) datos.clave = clave;
-  const r = await pedir(TEMAS.comando, datos);
+async function enviarComando(elemento, accion, extra) {
+  const inicio = performance.now();
+  const r = await pedir(TEMAS.comando, {token: sesion.token, elemento, accion, ...extra});
   if (r.fin) {
     terminarSesion(r.mensaje);
     return null;
   }
+  // El ESP32 publica el estado justo después de responder: ahí termina la medición.
+  if (r.ok) inicioMedicion = inicio;
   return r;
+}
+
+async function cambiarConsigna(ev) {
+  ev.preventDefault();
+  if (!sesion) return;
+  $('aviso').textContent = '';
+  const r = await enviarComando('aire', 'consigna', {valor: Number($('consigna').value)});
+  if (r && !r.ok) $('aviso').textContent = r.mensaje;
 }
 
 async function alTocarPanel(ev) {
@@ -253,7 +321,7 @@ async function confirmarApertura(ev) {
   if (!pendiente || !sesion) return;
   const boton = ev.target.querySelector('button:not([type=button])');
   boton.disabled = true;
-  const r = await enviarComando(pendiente.elemento, pendiente.accion, $('claveConfirmar').value);
+  const r = await enviarComando(pendiente.elemento, pendiente.accion, {clave: $('claveConfirmar').value});
   boton.disabled = false;
   $('claveConfirmar').value = '';
   if (!r) return;
@@ -266,12 +334,13 @@ function cerrarConfirmacion() {
   if ($('confirmar').open) $('confirmar').close();
 }
 
-/* ---------- Inicio ---------- */
+// Inicio
 
 revisarDominio();
 $('formLogin').addEventListener('submit', conectar);
 $('formAcceso').addEventListener('submit', enviarClave);
 $('formConfirmar').addEventListener('submit', confirmarApertura);
+$('formConsigna').addEventListener('submit', cambiarConsigna);
 $('cancelarConfirmar').addEventListener('click', cerrarConfirmacion);
 $('panel').addEventListener('click', alTocarPanel);
 document.querySelectorAll('[data-salir]').forEach(b => b.addEventListener('click', salir));

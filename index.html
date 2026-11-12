@@ -40,6 +40,7 @@ Tiene que decir exactamente <code id="dominioOficial"></code>. No te guíes por 
 </section>
 
 <div id="panel" hidden>
+<p id="alertasMaqueta" class="alerta" role="alert" hidden></p>
 <p id="alerta" class="alerta" role="alert" hidden></p>
 <section>
 <h2>Control</h2>
@@ -52,6 +53,34 @@ Tiene que decir exactamente <code id="dominioOficial"></code>. No te guíes por 
 <p id="aviso" class="error" role="alert"></p>
 <div class="pie"><small id="restante"></small><button type="button" class="claro" data-salir>Cerrar sesión</button></div>
 </section>
+
+<section>
+<h2>Temperatura y humedad</h2>
+<div class="fila"><b>Temperatura</b><span id="temp">—</span></div>
+<div class="fila"><b>Humedad</b><span id="hum">—</span></div>
+<p id="lectura" class="detalle"></p>
+</section>
+
+<section>
+<h2>Aire acondicionado</h2>
+<div class="fila"><b>Estado</b><span id="aireEstado">—</span></div>
+<div class="fila"><b>Modo</b><span id="aireModo">—</span></div>
+<div class="fila"><button data-elemento="aire" data-accion="prender">Encender</button><button class="claro" data-elemento="aire" data-accion="apagar">Apagar</button></div>
+<div class="fila"><b>Modo automático</b><button class="claro" data-elemento="aire" data-accion="auto">Activar</button></div>
+<form id="formConsigna" class="fila"><label>Consigna (°C)<input id="consigna" type="number" min="18" max="30" step="0.5" required></label><button>Guardar</button></form>
+<p class="detalle">En automático se enciende arriba de la consigna y se apaga 1 °C por debajo. Encender o apagar a mano pasa a modo manual.</p>
+</section>
+
+<section>
+<h2>Conexión de la maqueta</h2>
+<div class="fila"><b>Señal Wi-Fi</b><span id="senal">—</span></div>
+<div class="fila"><b>Canal</b><span id="canal">—</span></div>
+<div class="fila"><b>Broker MQTT</b><span id="broker">—</span></div>
+<div class="fila"><b>Mensajes del ESP32</b><span id="mensajes">—</span></div>
+<div class="fila"><b>Último comando</b><span id="latencia">—</span></div>
+<p class="detalle">Último comando: tiempo desde que tocás un botón hasta que llega el estado actualizado.</p>
+</section>
+
 <section>
 <h2>Últimos eventos</h2>
 <table><thead><tr><th>Hora</th><th>Resultado</th></tr></thead><tbody id="eventos"></tbody></table>
