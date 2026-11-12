@@ -4,7 +4,7 @@
 const CONFIG = {
   BROKER_URL: 'wss://p1f312f1.ala.us-east-1.emqxsl.com:8084/mqtt',   // con puerto y ruta
   PREFIJO: 'escuela/maqueta1',          // igual que PREFIJO_TEMAS en config.h
-  DOMINIO_OFICIAL: 'https://francinobac.github.io/maqueta/',
+  DOMINIO_OFICIAL: 'TU-USUARIO.github.io',
 };
 
 const TEMAS = {
@@ -15,21 +15,19 @@ const TEMAS = {
   online: CONFIG.PREFIJO + '/online',
 };
 const ESPERA_RESPUESTA_MS = 15000;
-const NOMBRES = {puerta: 'la puerta', ventana: 'la ventana'};
 const ALERTAS = {
   ventana: 'Aire encendido con la ventana abierta',
   calor: 'Temperatura demasiado alta',
   sensor: 'Falla del sensor de temperatura',
 };
-const CAMPOS = ['puerta', 'ventana', 'luz', 'temp', 'hum', 'aireEstado', 'aireModo', 'senal', 'canal', 'broker', 'mensajes', 'latencia'];
+const CAMPOS = ['puerta', 'ventana', 'luz', 'temp', 'hum', 'aireEstado', 'aireModo', 'senal', 'broker'];
 
 const $ = id => document.getElementById(id);
 
 let cliente = null;       // conexión MQTT
 let espOnline = null;     // null: todavía no se sabe
 let sesion = null;        // {token, ses, vence}. Solo en memoria: se pierde al recargar.
-let pendiente = null;     // comando de apertura que espera la clave
-let inicioMedicion = null;  // momento del último comando aceptado, para medir la latencia
+let ultimoRssi = null;    // señal Wi-Fi del ESP32, del último estado
 const pedidos = new Map();  // pedidos sin responder, por id
 
 function ver(id) {
@@ -94,10 +92,9 @@ function desconectar(mensaje) {
   cliente = null;
   sesion = null;
   espOnline = null;
+  ultimoRssi = null;
   if (c) c.end(false);
-  cerrarConfirmacion();
   for (const responder of pedidos.values()) responder({ok: false, mensaje: 'Desconectado.'});
-  inicioMedicion = null;
   $('eventos').replaceChildren();
   CAMPOS.forEach(id => { $(id).textContent = '—'; $(id).className = ''; });
   $('lectura').textContent = '';
@@ -127,6 +124,7 @@ function mostrarConexion() {
   else { chip.textContent = 'ESP32: desconectado (el estado puede ser viejo)'; chip.className = 'chip mal'; }
   document.querySelectorAll('[data-elemento], #formConsigna button').forEach(b => b.disabled = espOnline !== true);
   $('broker').textContent = espOnline === null ? '—' : espOnline ? 'Conectado' : 'Desconectado';
+  mostrarCalidad();
 }
 
 // Mensajes
@@ -191,7 +189,6 @@ async function enviarClave(ev) {
 
 function terminarSesion(mensaje) {
   sesion = null;
-  cerrarConfirmacion();
   $('errorAcceso').textContent = mensaje;
   ver('acceso');
 }
@@ -211,11 +208,11 @@ function hora(segundos) {
   });
 }
 
+// Rangos de RSSI explicados en REDES.md.
 function calidadSenal(rssi) {
-  if (rssi >= -60) return ['excelente', 'buena'];
-  if (rssi >= -67) return ['buena', 'buena'];
-  if (rssi >= -75) return ['regular', 'regular'];
-  return ['mala', 'mala'];
+  if (rssi >= -67) return ['Buena', 'buena'];
+  if (rssi >= -75) return ['Media', 'regular'];
+  return ['Mala', 'mala'];
 }
 
 function mostrarMedicion(d) {
@@ -240,16 +237,15 @@ function mostrarMedicion(d) {
 
 function mostrarRed(d) {
   const red = d.red || {};
-  if (typeof red.rssi !== 'number') return;
-  const [texto, clase] = calidadSenal(red.rssi);
-  $('senal').textContent = red.rssi + ' dBm (' + texto + ')';
+  if (typeof red.rssi === 'number') ultimoRssi = red.rssi;
+  mostrarCalidad();
+}
+
+// Solo se muestra con el ESP32 conectado: si no, el dato sería viejo.
+function mostrarCalidad() {
+  const [texto, clase] = espOnline === true && ultimoRssi !== null ? calidadSenal(ultimoRssi) : ['—', ''];
+  $('senal').textContent = texto;
   $('senal').className = clase;
-  $('canal').textContent = red.canal + ' (2,4 GHz)';
-  $('mensajes').textContent = red.enviados + ' enviados · ' + red.recibidos + ' recibidos';
-  if (inicioMedicion !== null) {
-    $('latencia').textContent = Math.round(performance.now() - inicioMedicion) + ' ms';
-    inicioMedicion = null;
-  }
 }
 
 function mostrarEstado(d) {
@@ -280,14 +276,11 @@ function mostrarEstado(d) {
 // Comandos
 
 async function enviarComando(elemento, accion, extra) {
-  const inicio = performance.now();
   const r = await pedir(TEMAS.comando, {token: sesion.token, elemento, accion, ...extra});
   if (r.fin) {
     terminarSesion(r.mensaje);
     return null;
   }
-  // El ESP32 publica el estado justo después de responder: ahí termina la medición.
-  if (r.ok) inicioMedicion = inicio;
   return r;
 }
 
@@ -303,35 +296,9 @@ async function alTocarPanel(ev) {
   const boton = ev.target.closest('[data-elemento]');
   if (!boton || !sesion) return;
   const {elemento, accion} = boton.dataset;
-  if (accion === 'abrir') {
-    pendiente = {elemento, accion};
-    $('confirmarTitulo').textContent = 'Abrir ' + NOMBRES[elemento];
-    $('errorConfirmar').textContent = '';
-    $('claveConfirmar').value = '';
-    $('confirmar').showModal();
-    return;
-  }
   $('aviso').textContent = '';
   const r = await enviarComando(elemento, accion);
   if (r && !r.ok) $('aviso').textContent = r.mensaje;
-}
-
-async function confirmarApertura(ev) {
-  ev.preventDefault();
-  if (!pendiente || !sesion) return;
-  const boton = ev.target.querySelector('button:not([type=button])');
-  boton.disabled = true;
-  const r = await enviarComando(pendiente.elemento, pendiente.accion, {clave: $('claveConfirmar').value});
-  boton.disabled = false;
-  $('claveConfirmar').value = '';
-  if (!r) return;
-  if (r.ok) cerrarConfirmacion();
-  else $('errorConfirmar').textContent = r.mensaje;
-}
-
-function cerrarConfirmacion() {
-  pendiente = null;
-  if ($('confirmar').open) $('confirmar').close();
 }
 
 // Inicio
@@ -339,9 +306,7 @@ function cerrarConfirmacion() {
 revisarDominio();
 $('formLogin').addEventListener('submit', conectar);
 $('formAcceso').addEventListener('submit', enviarClave);
-$('formConfirmar').addEventListener('submit', confirmarApertura);
 $('formConsigna').addEventListener('submit', cambiarConsigna);
-$('cancelarConfirmar').addEventListener('click', cerrarConfirmacion);
 $('panel').addEventListener('click', alTocarPanel);
 document.querySelectorAll('[data-salir]').forEach(b => b.addEventListener('click', salir));
 setInterval(actualizarReloj, 1000);

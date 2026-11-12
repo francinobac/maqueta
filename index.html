@@ -73,12 +73,8 @@ Tiene que decir exactamente <code id="dominioOficial"></code>. No te guíes por 
 
 <section>
 <h2>Conexión de la maqueta</h2>
-<div class="fila"><b>Señal Wi-Fi</b><span id="senal">—</span></div>
-<div class="fila"><b>Canal</b><span id="canal">—</span></div>
-<div class="fila"><b>Broker MQTT</b><span id="broker">—</span></div>
-<div class="fila"><b>Mensajes del ESP32</b><span id="mensajes">—</span></div>
-<div class="fila"><b>Último comando</b><span id="latencia">—</span></div>
-<p class="detalle">Último comando: tiempo desde que tocás un botón hasta que llega el estado actualizado.</p>
+<div class="fila"><b>Estado</b><span id="broker">—</span></div>
+<div class="fila"><b>Conexión</b><span id="senal">—</span></div>
 </section>
 
 <section>
@@ -87,16 +83,5 @@ Tiene que decir exactamente <code id="dominioOficial"></code>. No te guíes por 
 </section>
 </div>
 </main>
-
-<dialog id="confirmar">
-<form id="formConfirmar">
-<h2 id="confirmarTitulo"></h2>
-<p>Para abrir, confirmá con la clave de acceso.</p>
-<input type="text" autocomplete="username" value="clave-de-la-maqueta" hidden>
-<label>Clave de acceso<input id="claveConfirmar" type="password" autocomplete="current-password" maxlength="64" required></label>
-<p id="errorConfirmar" class="error" role="alert"></p>
-<div class="pie"><button type="button" class="claro" id="cancelarConfirmar">Cancelar</button><button>Confirmar</button></div>
-</form>
-</dialog>
 </body>
 </html>

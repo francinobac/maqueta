@@ -34,6 +34,3 @@ tr.sospechoso td{color:#b3261e;font-weight:600}
 .buena{color:#14532d;font-weight:600}
 .regular{color:#8a5a00;font-weight:600}
 .mala{color:#8c1d18;font-weight:600}
-dialog{width:min(90vw,420px);box-sizing:border-box;border:0;border-radius:12px;padding:16px}
-dialog::backdrop{background:#0006}
-dialog .pie button{flex:1}
