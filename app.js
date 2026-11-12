@@ -4,7 +4,7 @@
 const CONFIG = {
   BROKER_URL: 'wss://p1f312f1.ala.us-east-1.emqxsl.com:8084/mqtt',   // con puerto y ruta
   PREFIJO: 'escuela/maqueta1',          // igual que PREFIJO_TEMAS en config.h
-  DOMINIO_OFICIAL: 'TU-USUARIO.github.io',
+  DOMINIO_OFICIAL: 'https://francinobac.github.io/maqueta/',
 };
 
 const TEMAS = {
