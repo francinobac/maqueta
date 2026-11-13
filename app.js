@@ -4,7 +4,7 @@
 const CONFIG = {
   BROKER_URL: 'wss://p1f312f1.ala.us-east-1.emqxsl.com:8084/mqtt',   // con puerto y ruta
   PREFIJO: 'escuela/maqueta1',          // igual que PREFIJO_TEMAS en config.h
-  DOMINIO_OFICIAL: 'francinobac.github.io/maqueta/',
+  DOMINIO_OFICIAL: 'TU-USUARIO.github.io',
 };
 
 const TEMAS = {
@@ -16,11 +16,9 @@ const TEMAS = {
 };
 const ESPERA_RESPUESTA_MS = 15000;
 const ALERTAS = {
-  ventana: 'Aire encendido con la ventana abierta',
-  calor: 'Temperatura demasiado alta',
-  sensor: 'Falla del sensor de temperatura',
+  sensor: 'Falla del sensor de presencia: no recibe eco',
 };
-const CAMPOS = ['puerta', 'ventana', 'luz', 'temp', 'hum', 'aireEstado', 'aireModo', 'senal', 'broker'];
+const CAMPOS = ['puerta', 'ventana', 'luz', 'modo', 'distancia', 'presencia', 'senal', 'broker'];
 
 const $ = id => document.getElementById(id);
 
@@ -98,7 +96,7 @@ function desconectar(mensaje) {
   $('eventos').replaceChildren();
   CAMPOS.forEach(id => { $(id).textContent = '—'; $(id).className = ''; });
   $('lectura').textContent = '';
-  $('consigna').value = '';
+  marcarModo(null);
   $('alerta').hidden = true;
   $('alertasMaqueta').hidden = true;
   $('conexion').hidden = true;
@@ -122,7 +120,7 @@ function mostrarConexion() {
   else if (espOnline === null) { chip.textContent = 'ESP32: esperando datos…'; chip.className = 'chip'; }
   else if (espOnline) { chip.textContent = 'ESP32: conectado'; chip.className = 'chip ok'; }
   else { chip.textContent = 'ESP32: desconectado (el estado puede ser viejo)'; chip.className = 'chip mal'; }
-  document.querySelectorAll('[data-elemento], #formConsigna button').forEach(b => b.disabled = espOnline !== true);
+  document.querySelectorAll('[data-elemento]').forEach(b => b.disabled = espOnline !== true);
   $('broker').textContent = espOnline === null ? '—' : espOnline ? 'Conectado' : 'Desconectado';
   mostrarCalidad();
 }
@@ -215,20 +213,13 @@ function calidadSenal(rssi) {
   return ['Mala', 'mala'];
 }
 
-function mostrarMedicion(d) {
-  if (d.sensor) {
-    $('temp').textContent = d.temp.toFixed(1) + ' °C';
-    $('hum').textContent = Math.round(d.hum) + ' %';
-    $('lectura').textContent = 'Última lectura: ' + hora(d.lectura);
-  } else {
-    $('temp').textContent = 'Sin dato';
-    $('hum').textContent = 'Sin dato';
-    $('lectura').textContent = 'El sensor no responde.';
-  }
-  const aire = d.aire || {};
-  $('aireEstado').textContent = aire.on ? 'Encendido' : 'Apagado';
-  $('aireModo').textContent = aire.auto ? 'Automático' : 'Manual';
-  if (document.activeElement !== $('consigna') && aire.consigna != null) $('consigna').value = aire.consigna;
+function mostrarPresencia(d) {
+  $('distancia').textContent = typeof d.dist === 'number' ? d.dist + ' cm' : 'Sin eco';
+  $('presencia').textContent = d.pres ? 'Sí' : 'No';
+  $('presencia').className = d.pres ? 'buena' : '';
+  let detalle = d.lectura ? 'Última lectura: ' + hora(d.lectura) + '. ' : '';
+  if (d.umbral) detalle += 'Hay presencia a menos de ' + d.umbral + ' cm.';
+  $('lectura').textContent = detalle;
 
   const alertas = (Array.isArray(d.alertas) ? d.alertas : []).map(a => ALERTAS[a]).filter(Boolean);
   $('alertasMaqueta').hidden = alertas.length === 0;
@@ -248,11 +239,20 @@ function mostrarCalidad() {
   $('senal').className = clase;
 }
 
+// Resalta el botón del modo actual de la luz.
+function marcarModo(modo) {
+  document.querySelectorAll('[data-accion="manual"], [data-accion="auto"]').forEach(b => {
+    b.setAttribute('aria-pressed', String(b.dataset.accion === modo));
+  });
+}
+
 function mostrarEstado(d) {
   $('puerta').textContent = d.puerta ? 'Abierta' : 'Cerrada';
   $('ventana').textContent = d.ventana ? 'Abierta' : 'Cerrada';
-  $('luz').textContent = d.luz ? 'Prendida' : 'Apagada';
-  mostrarMedicion(d);
+  $('luz').textContent = d.luz ? 'Encendida' : 'Apagada';
+  $('modo').textContent = d.modo === 'auto' ? 'Automático' : 'Manual';
+  marcarModo(d.modo === 'auto' ? 'auto' : 'manual');
+  mostrarPresencia(d);
   mostrarRed(d);
 
   const eventos = Array.isArray(d.eventos) ? d.eventos : [];
@@ -284,14 +284,6 @@ async function enviarComando(elemento, accion, extra) {
   return r;
 }
 
-async function cambiarConsigna(ev) {
-  ev.preventDefault();
-  if (!sesion) return;
-  $('aviso').textContent = '';
-  const r = await enviarComando('aire', 'consigna', {valor: Number($('consigna').value)});
-  if (r && !r.ok) $('aviso').textContent = r.mensaje;
-}
-
 async function alTocarPanel(ev) {
   const boton = ev.target.closest('[data-elemento]');
   if (!boton || !sesion) return;
@@ -306,7 +298,6 @@ async function alTocarPanel(ev) {
 revisarDominio();
 $('formLogin').addEventListener('submit', conectar);
 $('formAcceso').addEventListener('submit', enviarClave);
-$('formConsigna').addEventListener('submit', cambiarConsigna);
 $('panel').addEventListener('click', alTocarPanel);
 document.querySelectorAll('[data-salir]').forEach(b => b.addEventListener('click', salir));
 setInterval(actualizarReloj, 1000);

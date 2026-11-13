@@ -48,27 +48,24 @@ Tiene que decir exactamente <code id="dominioOficial"></code>. No te guíes por 
 <button data-elemento="puerta" data-accion="abrir">Abrir</button><button class="claro" data-elemento="puerta" data-accion="cerrar">Cerrar</button></div>
 <div class="fila"><b>Ventana</b><span id="ventana">—</span>
 <button data-elemento="ventana" data-accion="abrir">Abrir</button><button class="claro" data-elemento="ventana" data-accion="cerrar">Cerrar</button></div>
-<div class="fila"><b>Luz</b><span id="luz">—</span>
-<button data-elemento="luz" data-accion="prender">Prender</button><button class="claro" data-elemento="luz" data-accion="apagar">Apagar</button></div>
 <p id="aviso" class="error" role="alert"></p>
 <div class="pie"><small id="restante"></small><button type="button" class="claro" data-salir>Cerrar sesión</button></div>
 </section>
 
 <section>
-<h2>Temperatura y humedad</h2>
-<div class="fila"><b>Temperatura</b><span id="temp">—</span></div>
-<div class="fila"><b>Humedad</b><span id="hum">—</span></div>
-<p id="lectura" class="detalle"></p>
+<h2>Luz</h2>
+<div class="fila"><b>Estado</b><span id="luz">—</span></div>
+<div class="fila"><button data-elemento="luz" data-accion="prender">Encender</button><button class="claro" data-elemento="luz" data-accion="apagar">Apagar</button></div>
+<div class="fila"><b>Modo</b><span id="modo">—</span></div>
+<div class="fila"><button class="claro" data-elemento="luz" data-accion="manual" aria-pressed="false">Manual</button><button class="claro" data-elemento="luz" data-accion="auto" aria-pressed="false">Automático</button></div>
+<p class="detalle">En automático se enciende al detectar presencia y se apaga después de un rato sin presencia. Encender o apagar a mano pasa a modo manual.</p>
 </section>
 
 <section>
-<h2>Aire acondicionado</h2>
-<div class="fila"><b>Estado</b><span id="aireEstado">—</span></div>
-<div class="fila"><b>Modo</b><span id="aireModo">—</span></div>
-<div class="fila"><button data-elemento="aire" data-accion="prender">Encender</button><button class="claro" data-elemento="aire" data-accion="apagar">Apagar</button></div>
-<div class="fila"><b>Modo automático</b><button class="claro" data-elemento="aire" data-accion="auto">Activar</button></div>
-<form id="formConsigna" class="fila"><label>Consigna (°C)<input id="consigna" type="number" min="18" max="30" step="0.5" required></label><button>Guardar</button></form>
-<p class="detalle">En automático se enciende arriba de la consigna y se apaga 1 °C por debajo. Encender o apagar a mano pasa a modo manual.</p>
+<h2>Presencia</h2>
+<div class="fila"><b>Distancia</b><span id="distancia">—</span></div>
+<div class="fila"><b>Presencia</b><span id="presencia">—</span></div>
+<p id="lectura" class="detalle"></p>
 </section>
 
 <section>
